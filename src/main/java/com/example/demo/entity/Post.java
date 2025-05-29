@@ -24,4 +24,9 @@ public class Post {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
+
+    public void update(String title, String content) {
+        if (title != null) this.title = title;
+        if (content != null) this.content = content;
+    }
 }
