@@ -2,14 +2,16 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.request.UserRequestDto;
 import com.example.demo.dto.response.UserResponseDto;
+import com.example.demo.util.CustomUserDetails;
+import com.example.demo.util.JwtTokenProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.HttpStatus;
 
 import com.example.demo.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import java.util.List;
+
 
 @RestController
 @RequiredArgsConstructor
@@ -18,32 +20,40 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
+    private final JwtTokenProvider jwtTokenProvider;
 
-    @PostMapping
-    public ResponseEntity<UserResponseDto> create(@RequestBody UserRequestDto request) {
-        log.info("pw : ",request.getPassword());
-        return ResponseEntity.status(HttpStatus.CREATED).body(userService.create(request));
+    // 회원가입
+    @PostMapping("/signup")
+    public ResponseEntity<UserResponseDto> signup(@RequestBody UserRequestDto request) {
+        return ResponseEntity.status(201).body(userService.signUp(request));
     }
 
-    @GetMapping
-    public ResponseEntity<List<UserResponseDto>> findAll() {
-        return ResponseEntity.ok(userService.findAll());
+    // 로그인
+    @PostMapping("/login")
+    public ResponseEntity<String> login(@RequestBody UserRequestDto request) {
+        // 로그인 인증 후 JWT 발급
+        String jwtToken = userService.login(request);
+        return ResponseEntity.ok(jwtToken);  // JWT 반환
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<UserResponseDto> findById(@PathVariable Long id) {
-        return ResponseEntity.ok(userService.findById(id));
+    // 사용자 프로필 조회
+    @GetMapping("/profile")
+    public ResponseEntity<UserResponseDto> getProfile(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        log.info("userDetails:{}",userDetails);
+        log.info("userDetails.getUsername() :{}",userDetails.getUsername());
+        return ResponseEntity.ok(userService.findByUsername(userDetails.getUsername()));
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<UserResponseDto> update(@PathVariable Long id, @RequestBody UserRequestDto request) {
-        return ResponseEntity.ok(userService.update(id, request));
+    // 사용자 업데이트
+    @PutMapping
+    public ResponseEntity<UserResponseDto> update(@AuthenticationPrincipal CustomUserDetails userDetails, @RequestBody UserRequestDto request) {
+        return ResponseEntity.ok(userService.update(userDetails.getId(), request));
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        userService.delete(id);
+    // 사용자 삭제
+    @DeleteMapping
+    public ResponseEntity<Void> delete(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        userService.delete(userDetails.getId());
         return ResponseEntity.noContent().build();
     }
 }
-
